@@ -1,1 +1,1 @@
-# Sample source codes for link from blog
+Sample source codes for link from blog
