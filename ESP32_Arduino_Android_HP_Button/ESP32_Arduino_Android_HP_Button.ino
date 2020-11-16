@@ -21,7 +21,7 @@
 static esp_adc_cal_characteristics_t *adc_chars;
 static const adc_unit_t adc_unit = ADC_UNIT_2; // ADC_UNIT_1 or ADC_UNIT_2
 static const adc_channel_t channel = ADC_CHANNEL_6; // GPIO34 for ADC1, GPIO14 for ADC2
-static const adc_atten_t atten = ADC_ATTEN_DB_0;
+static const adc_atten_t atten = ADC_ATTEN_DB_11; // 3.3V full scale
 
 #define NUM_OF_SAMPLES 32 // For Multisampling
 #define DEFAULT_VREF 1100 // For better estimation of adc2_vref_to_gpio()
@@ -56,15 +56,16 @@ static uint32_t adc_get_hp_button()
   adc_reading /= NUM_OF_SAMPLES;
   //Convert adc_reading to voltage in mV
   voltage = esp_adc_cal_raw_to_voltage(adc_reading, adc_chars);
+  //Serial.println(voltage);
   // Android Headphone button conditions
   // 3.3V pull-up
-  if (voltage < 4095*100/3300) { // < 100mV  4095*100/3300 (CENTER)
+  if (voltage < 140) { // < 140mV (CENTER: 0mV)
       ret = HP_BUTTON_CENTER;
-  } else if (voltage >= 4095*142/3300 && voltage < 4095*238/3300) { // 142mv ~ 238mV (D: 190mV)
+  } else if (voltage >= 142 && voltage < 238) { // 142mv ~ 238mV (D: 190mV)
       ret = HP_BUTTON_D;
-  } else if (voltage >= 4095*240/3300 && voltage < 4095*400/3300) { // 240mV ~ 400mV (PLUS: 320mV)
+  } else if (voltage >= 240 && voltage < 400) { // 240mV ~ 400mV (PLUS: 320mV)
       ret = HP_BUTTON_PLUS;
-  } else if (voltage >= 4095*435/3300 && voltage < 4095*725/3300) { // 435mV ~ 725mV (MINUS: 580mV)
+  } else if (voltage >= 435 && voltage < 725) { // 435mV ~ 725mV (MINUS: 580mV)
       ret = HP_BUTTON_MINUS;
   } else { // others
       ret = HP_BUTTON_OPEN;
