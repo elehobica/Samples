@@ -22,7 +22,7 @@ union U {
     uint16_t s[2];
 } u;
 
-// 16bit����ւ�
+// 16bit swap
 uint32_t swap16b(uint32_t in_val)
 {
     u.i = in_val;
@@ -44,7 +44,7 @@ double _square_wave(void)
     return dval;
 }
 
-// �O�p�g����
+// Generate Triangle Wave
 void setup_triangle_sine_waves(int32_t *samples_data)
 {
     unsigned int i;
