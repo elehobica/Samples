@@ -43,25 +43,55 @@ void init_uart0(void)
     usart_interrupt_enable(USART0, USART_INT_RBNE);
 }
 
+// PWM for PB10 (Timer1 Ch2: partial remap1, alternate function)
+void timer1_pwm_init(void)
+{
+    timer_parameter_struct tpa;
 
+    rcu_periph_clock_enable(RCU_TIMER1);
+    timer_struct_para_init(&tpa);
+    tpa.prescaler = 108 - 1;        // prescaler (108MHz -> 1MHz)
+    tpa.period = 100 - 1;           // max value of counting up (1MHz -> 10KHz = 100us)
+    timer_init(TIMER1, &tpa);
+    timer_channel_output_state_config(TIMER1, TIMER_CH_2, TIMER_CCX_ENABLE); // channel output enable
+    timer_channel_output_mode_config(TIMER1, TIMER_CH_2, TIMER_OC_MODE_PWM0);
+    // default PWM ratio = 50 / 100
+    timer_autoreload_value_config(TIMER1, 99);
+    timer_channel_output_pulse_value_config(TIMER1, TIMER_CH_2, 50);
+    timer_enable(TIMER1);
+
+    rcu_periph_clock_enable(RCU_AF);
+    gpio_pin_remap_config(GPIO_TIMER1_PARTIAL_REMAP1, ENABLE);
+    rcu_periph_clock_enable(RCU_GPIOB);
+    gpio_init(GPIOB, GPIO_MODE_AF_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_10);
+}
+
+// on_term: 0 ~ 100 (%)
+void timer1_pwm_set_ratio(uint16_t on_term)
+{
+    timer_channel_output_pulse_value_config(TIMER1, TIMER_CH_2, on_term);
+}
 
 int main(void)
 {
+    int j = 0;
     uint8_t mount_is_ok = 1; /* 0: mount successful ; 1: mount failed */
     FIL fil;
     FRESULT fr;     /* FatFs return code */
     UINT br;
 
     rcu_periph_clock_enable(RCU_GPIOA);
-    rcu_periph_clock_enable(RCU_GPIOB);
+    //rcu_periph_clock_enable(RCU_GPIOB);
     rcu_periph_clock_enable(RCU_GPIOC);
     gpio_init(GPIOC, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_13);
     gpio_init(GPIOA, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_1 | GPIO_PIN_2);
-    gpio_init(GPIOB, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_10);
+    //gpio_init(GPIOB, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_10);
 
-    gpio_bit_set(GPIOB, GPIO_PIN_10);
+    //gpio_bit_set(GPIOB, GPIO_PIN_10);
 
     init_uart0();
+    timer1_pwm_init();
+    timer1_pwm_set_ratio(50);
 
     Lcd_Init();
     LCD_Clear(WHITE);
@@ -94,6 +124,13 @@ int main(void)
                         }
                     } else {
                         break;
+                    }
+                    j++;
+                    if (j >= 100*4) j = 0;
+                    if (j < 50*4) {
+                        timer1_pwm_set_ratio(j/4);
+                    } else {
+                        timer1_pwm_set_ratio(99 - j/4);
                     }
                 }
                 f_close(&fil);
